@@ -40,4 +40,5 @@ Crater executes malicious code that will destroy what you love.
 
 **Technical documentation:**
 
-* [Agent HTTP Api specification](docs/agent-http-api.md)
+* [Agent HTTP API specification](docs/agent-http-api.md)
+* [JSON reports specification](docs/json-reports.md)
