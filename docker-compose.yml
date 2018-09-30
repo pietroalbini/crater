@@ -1,0 +1,31 @@
+version: "3.4"
+services:
+
+  server:
+    build:
+      context: .
+      target: server
+
+    ports:
+      - "8000:80"
+
+    volumes:
+      - ./work:/opt/crater/work
+      - ./tokens.toml:/opt/crater/tokens.toml:ro
+
+  agent:
+    build:
+      context: .
+      target: agent
+
+    depends_on:
+      - server
+
+    volumes:
+      - ./work:/opt/crater/work
+      - /var/run/docker.sock:/var/run/docker.sock
+
+    environment:
+      CRATER_SERVER: http://server:80
+      CRATER_TOKEN: default-token
+      CRATER_THREADS: 1

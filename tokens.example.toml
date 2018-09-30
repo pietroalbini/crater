@@ -21,4 +21,4 @@ secret-key = "zuf+tfteSlswRu7BJ86wekitnifILbZam1KYY3TG"
 #secret-key = ""
 
 [agents]
-# "TOKEN" = "agent-name"
+"default-token" = "agent-name"

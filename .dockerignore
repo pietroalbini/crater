@@ -1,0 +1,5 @@
+/target
+/work
+
+/docker/crater-common/Dockerfile
+/.dockerignore
