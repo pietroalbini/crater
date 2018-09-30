@@ -16,6 +16,7 @@ use server::agents::Agents;
 use server::auth::ACL;
 use server::github::GitHubApi;
 use server::tokens::Tokens;
+use std::net::SocketAddr;
 use std::sync::Arc;
 use warp::{self, Filter};
 
@@ -35,7 +36,7 @@ pub struct Data {
     pub acl: ACL,
 }
 
-pub fn run(config: Config) -> Result<()> {
+pub fn run(config: Config, bind: SocketAddr) -> Result<()> {
     let db = Database::open()?;
     let tokens = tokens::Tokens::load()?;
     let github = GitHubApi::new(&tokens);
@@ -58,8 +59,6 @@ pub fn run(config: Config) -> Result<()> {
 
     data.reports_worker.spawn(data.clone());
 
-    info!("running server...");
-
     let data = Arc::new(data);
 
     let routes = warp::any()
@@ -78,7 +77,8 @@ pub fn run(config: Config) -> Result<()> {
             resp
         });
 
-    warp::serve(routes).run(([127, 0, 0, 1], 8000));
+    info!("starting crater server on port {}...", bind);
+    warp::serve(routes).run(bind);
 
     Ok(())
 }

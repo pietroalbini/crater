@@ -23,6 +23,7 @@ use crater::run_graph;
 use crater::server;
 use crater::toolchain::{Toolchain, MAIN_TOOLCHAIN};
 use std::env;
+use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::str::FromStr;
 use structopt::clap::AppSettings;
@@ -244,7 +245,14 @@ pub enum Crater {
     },
 
     #[structopt(name = "server")]
-    Server,
+    Server {
+        #[structopt(
+            name = "bind",
+            long = "bind",
+            help = "the port the server will bind to"
+        )]
+        bind: Option<SocketAddr>,
+    },
 
     #[structopt(name = "agent")]
     Agent {
@@ -488,9 +496,12 @@ impl Crater {
                     bail!("missing experiment: {}", ex.0);
                 }
             }
-            Crater::Server => {
+            Crater::Server { ref bind } => {
                 let config = Config::load()?;
-                server::run(config)?;
+                server::run(
+                    config,
+                    (*bind).unwrap_or_else(|| ([127, 0, 0, 1], 8000).into()),
+                )?;
             }
             Crater::Agent {
                 ref url,
