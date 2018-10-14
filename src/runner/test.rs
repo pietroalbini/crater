@@ -15,10 +15,11 @@ fn run_cargo(
     ex: &Experiment,
     source_path: &Path,
     toolchain: &Toolchain,
+    krate: &Crate,
     quiet: bool,
     args: &[&str],
 ) -> Result<()> {
-    let target_dir = toolchain.target_dir(&ex.name);
+    let target_dir = ::dirs::target_dir(ex, toolchain, krate);
     ::std::fs::create_dir_all(&target_dir)?;
 
     let mut rustflags = format!("--cap-lints={}", ex.cap_lints.to_str());
@@ -55,7 +56,7 @@ pub fn run_test<DB: WriteResults>(
     krate: &Crate,
     db: &DB,
     quiet: bool,
-    test_fn: fn(&Config, &Experiment, &Path, &Toolchain, bool) -> Result<TestResult>,
+    test_fn: fn(&Config, &Experiment, &Path, &Toolchain, &Crate, bool) -> Result<TestResult>,
 ) -> Result<RunTestResult> {
     if let Some(res) = db.get_result(ex, tc, krate)? {
         info!("skipping crate {}. existing result: {}", krate, res);
@@ -76,7 +77,7 @@ pub fn run_test<DB: WriteResults>(
                     tc.to_string(),
                     ex.name
                 );
-                test_fn(config, ex, source_path, tc, quiet)
+                test_fn(config, ex, source_path, tc, krate, quiet)
             })
         }).map(|result| RunTestResult {
             result,
@@ -90,6 +91,7 @@ fn build(
     ex: &Experiment,
     source_path: &Path,
     toolchain: &Toolchain,
+    krate: &Crate,
     quiet: bool,
 ) -> Result<()> {
     run_cargo(
@@ -97,6 +99,7 @@ fn build(
         ex,
         source_path,
         toolchain,
+        krate,
         quiet,
         &["build", "--frozen"],
     )?;
@@ -105,6 +108,7 @@ fn build(
         ex,
         source_path,
         toolchain,
+        krate,
         quiet,
         &["test", "--frozen", "--no-run"],
     )?;
@@ -116,6 +120,7 @@ fn test(
     ex: &Experiment,
     source_path: &Path,
     toolchain: &Toolchain,
+    krate: &Crate,
     quiet: bool,
 ) -> Result<()> {
     run_cargo(
@@ -123,6 +128,7 @@ fn test(
         ex,
         source_path,
         toolchain,
+        krate,
         quiet,
         &["test", "--frozen"],
     )
@@ -133,11 +139,12 @@ pub fn test_build_and_test(
     ex: &Experiment,
     source_path: &Path,
     toolchain: &Toolchain,
+    krate: &Crate,
     quiet: bool,
 ) -> Result<TestResult> {
-    let build_r = build(config, ex, source_path, toolchain, quiet);
+    let build_r = build(config, ex, source_path, toolchain, krate, quiet);
     let test_r = if build_r.is_ok() {
-        Some(test(config, ex, source_path, toolchain, quiet))
+        Some(test(config, ex, source_path, toolchain, krate, quiet))
     } else {
         None
     };
@@ -155,9 +162,10 @@ pub fn test_build_only(
     ex: &Experiment,
     source_path: &Path,
     toolchain: &Toolchain,
+    krate: &Crate,
     quiet: bool,
 ) -> Result<TestResult> {
-    let r = build(config, ex, source_path, toolchain, quiet);
+    let r = build(config, ex, source_path, toolchain, krate, quiet);
     if r.is_ok() {
         Ok(TestResult::TestSkipped)
     } else {
@@ -170,6 +178,7 @@ pub fn test_check_only(
     ex: &Experiment,
     source_path: &Path,
     toolchain: &Toolchain,
+    krate: &Crate,
     quiet: bool,
 ) -> Result<TestResult> {
     if run_cargo(
@@ -177,6 +186,7 @@ pub fn test_check_only(
         ex,
         source_path,
         toolchain,
+        krate,
         quiet,
         &["check", "--frozen", "--all", "--all-targets"],
     ).is_ok()

@@ -14,6 +14,7 @@ pub(super) enum TaskStep {
     BuildOnly { tc: Toolchain, quiet: bool },
     CheckOnly { tc: Toolchain, quiet: bool },
     UnstableFeatures { tc: Toolchain },
+    Cleanup,
 }
 
 impl fmt::Debug for TaskStep {
@@ -41,6 +42,7 @@ impl fmt::Debug for TaskStep {
             TaskStep::UnstableFeatures { ref tc } => {
                 write!(f, "find unstable features on {}", tc.to_string())?;
             }
+            TaskStep::Cleanup => write!(f, "cleanup")?,
         }
         Ok(())
     }
@@ -65,7 +67,7 @@ impl Task {
             // The prepare step should always be executed.
             // It will not be executed if all the dependent tasks are already executed, since the
             // runner will not reach the prepare task in that case.
-            TaskStep::Prepare => true,
+            TaskStep::Prepare | TaskStep::Cleanup => true,
             // Build tasks should only be executed if there are no results for them
             TaskStep::BuildAndTest { ref tc, .. }
             | TaskStep::BuildOnly { ref tc, .. }
@@ -84,7 +86,7 @@ impl Task {
         result: TestResult,
     ) -> Result<()> {
         match self.step {
-            TaskStep::Prepare => {}
+            TaskStep::Prepare | TaskStep::Cleanup => {}
             TaskStep::BuildAndTest { ref tc, .. }
             | TaskStep::BuildOnly { ref tc, .. }
             | TaskStep::CheckOnly { ref tc, .. }
@@ -114,6 +116,7 @@ impl Task {
             TaskStep::BuildOnly { ref tc, quiet } => self.run_build_only(config, ex, tc, db, quiet),
             TaskStep::CheckOnly { ref tc, quiet } => self.run_check_only(config, ex, tc, db, quiet),
             TaskStep::UnstableFeatures { ref tc } => self.run_unstable_features(config, ex, db, tc),
+            TaskStep::Cleanup => self.cleanup(ex),
         }
     }
 
@@ -214,5 +217,23 @@ impl Task {
             false,
             ::runner::unstable_features::find_unstable_features,
         ).map(|_| ())
+    }
+
+    fn cleanup(&self, ex: &Experiment) -> Result<()> {
+        for tc in &ex.toolchains {
+            // Remove target directories
+            let target_dir = ::dirs::target_dir(ex, tc, &self.krate);
+            if target_dir.is_dir() {
+                if let Err(err) = ::utils::fs::remove_dir_all(&target_dir) {
+                    warn!(
+                        "failed to remove target dir {}: {}",
+                        target_dir.to_string_lossy(),
+                        err
+                    );
+                }
+            }
+        }
+
+        Ok(())
     }
 }

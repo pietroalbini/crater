@@ -1,19 +1,13 @@
-use dirs::TARGET_DIR;
 use errors::*;
 use run::RunCommand;
 use std::borrow::Cow;
 use std::fmt;
-use std::path::PathBuf;
 use std::str::FromStr;
 use tools::CARGO;
 use tools::{RUSTUP, RUSTUP_TOOLCHAIN_INSTALL_MASTER};
 use utils;
 
 pub(crate) static MAIN_TOOLCHAIN_NAME: &str = "stable";
-
-pub fn ex_target_dir(ex_name: &str) -> PathBuf {
-    TARGET_DIR.join(ex_name)
-}
 
 /// This is the main toolchain used by Crater for everything not experiment-specific, such as
 /// generating lockfiles or fetching dependencies.
@@ -69,18 +63,6 @@ impl Toolchain {
             ToolchainSource::Dist { ref name } => name.to_string(),
             ToolchainSource::CI { ref sha, .. } => format!("{}-alt", sha),
         }
-    }
-
-    pub fn target_dir(&self, ex_name: &str) -> PathBuf {
-        let mut dir = ex_target_dir(ex_name);
-
-        if let Some(thread) = ::std::thread::current().name() {
-            dir = dir.join(thread);
-        } else {
-            dir = dir.join("shared");
-        }
-
-        dir.join(self.to_string())
     }
 
     pub fn prep_offline_registry(&self) -> Result<()> {

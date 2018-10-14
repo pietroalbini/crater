@@ -1,4 +1,5 @@
 use config::Config;
+use crates::Crate;
 use errors::*;
 use experiments::Experiment;
 use results::TestResult;
@@ -12,6 +13,7 @@ pub(super) fn find_unstable_features(
     _ex: &Experiment,
     source_path: &Path,
     _toolchain: &Toolchain,
+    _krate: &Crate,
     _quiet: bool,
 ) -> Result<TestResult> {
     let mut features = HashSet::new();

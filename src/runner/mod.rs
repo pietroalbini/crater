@@ -4,17 +4,17 @@
 // marks it as running, removing it when the task is done. The next task then is picked using a
 // depth-first search.
 //
-//                                   +---+ tc1 <---+
-//                                   |             |
-//          +---+ crate-complete <---+             +---+ prepare
-//          |                        |             |
-//          |                        +---+ tc2 <---+
+//                                                +---+ tc1 <---+
+//                                                |             |
+//          +---+ crate-complete <--- cleanup <---+             +---+ prepare
+//          |                                     |             |
+//          |                                     +---+ tc2 <---+
 // root <---+
-//          |                        +---+ tc1 <---+
-//          |                        |             |
-//          +---+ crate-complete <---+             +---+ prepare
-//                                   |             |
-//                                   +---+ tc2 <---+
+//          |                                     +---+ tc1 <---+
+//          |                                     |             |
+//          +---+ crate-complete <--- cleanup <---+             +---+ prepare
+//                                                |             |
+//                                                +---+ tc2 <---+
 
 mod prepare;
 mod tasks;
@@ -266,30 +266,21 @@ fn build_graph(ex: &Experiment, config: &Config) -> TasksGraph {
             builds.push(build_id);
         }
 
-        graph.add_crate(&builds);
+        let cleanup_id = graph.add_task(
+            Task {
+                krate: krate.clone(),
+                step: TaskStep::Cleanup,
+            },
+            &builds,
+        );
+
+        graph.add_crate(&[cleanup_id]);
     }
 
     graph
 }
 
 pub fn run_ex<DB: WriteResults + Sync>(
-    ex: &Experiment,
-    db: &DB,
-    threads_count: usize,
-    config: &Config,
-) -> Result<()> {
-    let res = run_ex_inner(ex, db, threads_count, config);
-
-    // Remove all the target dirs even if the experiment failed
-    let target_dir = &::toolchain::ex_target_dir(&ex.name);
-    if target_dir.exists() {
-        utils::fs::remove_dir_all(target_dir)?;
-    }
-
-    res
-}
-
-fn run_ex_inner<DB: WriteResults + Sync>(
     ex: &Experiment,
     db: &DB,
     threads_count: usize,
