@@ -23,6 +23,15 @@ pub(crate) enum Binary {
     InstalledByCrater(PathBuf),
 }
 
+impl Binary {
+    pub(crate) fn name(&self) -> &Path {
+        match self {
+            Binary::Global(path) => path,
+            Binary::InstalledByCrater(path) => path,
+        }
+    }
+}
+
 pub(crate) trait Runnable {
     fn binary(&self) -> Binary;
 

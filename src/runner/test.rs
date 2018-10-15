@@ -4,11 +4,11 @@ use docker::MountPerms;
 use errors::*;
 use experiments::Experiment;
 use results::{TestResult, WriteResults};
-use run::RunCommand;
+use run::{RunCommand, Runnable};
 use runner::prepare::{with_captured_lockfile, with_frobbed_toml, with_work_crate};
 use std::path::Path;
 use toolchain::Toolchain;
-use tools::CARGO;
+use tools::{CARGO, SCCACHE};
 
 fn run_cargo(
     config: &Config,
@@ -21,6 +21,9 @@ fn run_cargo(
 ) -> Result<()> {
     let target_dir = ::dirs::target_dir(ex, toolchain, krate);
     ::std::fs::create_dir_all(&target_dir)?;
+
+    let sccache_dir = ::dirs::sccache_dir(ex, toolchain);
+    ::std::fs::create_dir_all(&sccache_dir)?;
 
     let mut rustflags = format!("--cap-lints={}", ex.cap_lints.to_str());
     if let Some(ref tc_rustflags) = toolchain.rustflags {
@@ -36,8 +39,11 @@ fn run_cargo(
         .env("CARGO_INCREMENTAL", "0")
         .env("RUST_BACKTRACE", "full")
         .env("RUSTFLAGS", rustflags)
+        .env("SCCACHE_DIR", "/sccache")
+        .env("RUSTC_WRAPPER", SCCACHE.binary().name())
         .sandboxed()
         .mount(target_dir, "/target", MountPerms::ReadWrite)
+        .mount(sccache_dir, "/sccache", MountPerms::ReadWrite)
         .memory_limit(Some(config.sandbox.memory_limit))
         .run()
 }

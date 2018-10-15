@@ -39,3 +39,7 @@ pub(crate) fn target_dir(ex: &Experiment, tc: &Toolchain, krate: &Crate) -> Path
         .join(tc.to_string())
         .join(krate.id())
 }
+
+pub(crate) fn sccache_dir(ex: &Experiment, tc: &Toolchain) -> PathBuf {
+    EXPERIMENT_DIR.join(&ex.name).join("sccache").join(tc.to_string())
+}

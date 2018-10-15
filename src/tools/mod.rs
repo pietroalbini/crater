@@ -28,6 +28,12 @@ pub(crate) static RUSTUP_TOOLCHAIN_INSTALL_MASTER: BinaryCrate = BinaryCrate {
     cargo_subcommand: None,
 };
 
+pub(crate) static SCCACHE: BinaryCrate = BinaryCrate {
+    crate_name: "sccache",
+    binary: "sccache",
+    cargo_subcommand: None,
+};
+
 static INSTALLABLE_TOOLS: &[&InstallableTool] = &[
     &RUSTUP,
     &CARGO_INSTALL_UPDATE,
